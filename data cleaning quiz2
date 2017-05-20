@@ -1,0 +1,16 @@
+4. How many characters are in the 10th, 20th, 30th and 100th lines of HTML from this page:
+
+http://biostat.jhsph.edu/~jleek/contact.html
+
+(Hint: the nchar() function in R may be helpful)
+
+
+45 31 7 25
+
+require(httr);require(XML)
+## Loading required package: XML
+URL <- url("http://biostat.jhsph.edu/~jleek/contact.html")
+lines <- readLines(URL)
+close(URL)
+c(nchar(lines[10]), nchar(lines[20]), nchar(lines[30]), nchar(lines[100]))
+## [1] 45 31  7 25
