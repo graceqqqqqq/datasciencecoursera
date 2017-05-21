@@ -1,3 +1,25 @@
+1. Create an app on github and use this app to connect API and read data from jeff's repo.
+library(httr)
+library(httpuv)
+#find Oauth settings for github
+oauth_endpoints('github')
+
+#use key and secret
+myapp<- oauth_app('github',key='15eef1c570ffeaca3d45',secret='c76de341673af59abadd722a2165f125d28f060e')
+
+#get oauth credentials
+github_token<- oauth2.0_token(oauth_endpoints("github"),myapp)
+
+#use API
+gtoken<-config(token=github_token)
+url= 'https://api.github.com/users/jtleek/repos'
+req<- GET(url,config(token=github_token))
+stop_for_status(req)
+content(req)
+
+
+
+
 4. How many characters are in the 10th, 20th, 30th and 100th lines of HTML from this page:
 
 http://biostat.jhsph.edu/~jleek/contact.html
