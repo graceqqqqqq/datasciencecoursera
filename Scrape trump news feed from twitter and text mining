@@ -1,0 +1,82 @@
+#Scrape trump news feed from twitter and text mining
+
+library(twitteR)
+library(ROAuth)
+library(httr)
+
+#set api keys
+api_key<- 'AWKhudqfH2EwCDuVBAKQxNlmC'
+api_secret<- 'SupHJeh9xWKE0bia7UT8nsCFrw6Qk78PqMCj8P6ZGmfrjR90t1'
+access_token<- '865699456372457472-xkKfLNjuXL9zuxMcRI4H0z2pWut6BW6'
+access_token_secret<- 'z0igVuw8A1nRWX51b43yhapxf8UIvFTO3gnM8aGOoFzMU'
+setup_twitter_oauth(api_key,api_secret,access_token,access_token_secret)
+
+#grab news about trump
+tweets_trump <- searchTwitter('@realDonaldTrump',n=1500)
+
+#Loop over tweets and extract text
+library(plyr)
+feed_trump <- lapply(tweets_trump,function(t) t$getText())
+
+#scan positive or negative words
+yay = scan('negative-words.txt',what = 'character',comment.char = ';')
+boo = scan('positive-words.txt',what='character',comment.char = ';')
+bad_text=c(boo,'wft','epicfail','douchebag')
+good_text=c(yay,'upgrade',':)',"voted")
+
+score.sentiment = function(sentences, good_text, bad_text, .progress='none')
+{
+  require(plyr)
+  require(stringr)
+  # we got a vector of sentences. plyr will handle a list
+  # or a vector as an "l" for us
+  # we want a simple array of scores back, so we use
+  # "l" + "a" + "ply" = "laply":
+  scores = laply(sentences, function(sentence, good_text, bad_text) {
+    
+    # clean up sentences with R's regex-driven global substitute, gsub():
+    sentence = gsub('[[:punct:]]', '', sentence)
+    sentence = gsub('[[:cntrl:]]', '', sentence)
+    sentence = gsub('\\d+', '', sentence)
+    #to remove emojis
+    sentence <- iconv(sentence, 'UTF-8', 'ASCII')
+    sentence = tolower(sentence)        
+    # split into words. str_split is in the stringr package
+    word.list = str_split(sentence, '\\s+')
+    # sometimes a list() is one level of hierarchy too much
+    words = unlist(word.list)
+    
+    # compare our words to the dictionaries of positive & negative terms
+    pos.matches = match(words, good_text)
+    neg.matches = match(words, bad_text)
+    
+    # match() returns the position of the matched term or NA
+    # we just want a TRUE/FALSE:
+    pos.matches = !is.na(pos.matches)
+    neg.matches = !is.na(neg.matches)
+    
+    # and conveniently enough, TRUE/FALSE will be treated as 1/0 by sum():
+    score = sum(pos.matches) - sum(neg.matches)
+    
+    return(score)
+  }, good_text, bad_text, .progress=.progress )
+  
+  scores.df = data.frame(score=scores, text=sentences)
+  return(scores.df)
+}
+
+
+#The good news about the obnoxiously long function, is it spits out a nice data frame that can be manipulated very easily.
+
+# Call the function and return a data frame
+trumpoutcome <- score.sentiment(feed_trump, good_text, bad_text, .progress='text')
+# Cut the text, just gets in the way
+plotdat <- plotdat[c('name',"score")]
+# Remove neutral values of 0
+plotdat <- plotdat[!plotdat$score == 0, ]
+
+# Nice little quick plot
+qplot(factor(score), data=plotdat, geom="bar", 
+      #fill=factor(name),
+      xlab = "Sentiment Score")
+
